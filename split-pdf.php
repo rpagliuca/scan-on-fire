@@ -12,8 +12,15 @@ if (file_exists($config)) {
     }
 }
 
+$extraEvinceParameters = '';
+if (!empty($CFG->extraEvinceParameters)) {
+    $extraEvinceParameters = $CFG->extraEvinceParameters;
+}
+
+
 function connectReadWrite() {
     global $CFG;
+
     try {
         if (isset($CFG->database, $CFG->database->application, $CFG->database->application->host, $CFG->database->application->schema, $CFG->database->application->user, $CFG->database->application->password, $CFG->database->application->port, $CFG->database->application->charset)) {
             $db = new PDO("mysql:host={$CFG->database->application->host};dbname={$CFG->database->application->schema};port={$CFG->database->application->port}", $CFG->database->application->user, $CFG->database->application->password, array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES ' . $CFG->database->application->charset));
@@ -84,7 +91,8 @@ foreach (file("in/$date.csv") as $line) {
         if ($nome === null) {
             echo "UC $lastUc is invalid.\n";
             echo "Opening PDF on page $firstPage...\n";
-            exec("evince --page-label=$firstPage in/$date.pdf >/dev/null 2>&1 &");
+            $cmd = "evince --page-index=$firstPage $extraEvinceParameters in/$date.pdf >/dev/null 2>&1 &"; 
+            exec($cmd);
             $foundUc = findSimilarUCS($lastUc);
             if ($foundUc) {
                 $lastUc = $foundUc['uc'];
@@ -145,15 +153,33 @@ function findSimilarUCS($uc)
         echo "[$counter] Similar UC: {$row['valor_identificador_uc']} - {$row['nome']} - {$row['cpf']} \n";
         $options[$counter] = [
             'uc' => $row['valor_identificador_uc'],
-            'nome' => $row['nome']
+            'nome' => $row['nome'],
+            'cpf' => $row['cpf']
         ];
+        $cpf = preg_replace('[^0-9]', '', $options[$counter]['cpf']);
+        if (strlen($cpf) === 11) {
+            $cpf = substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 9, 2);
+        }
+        $options[$counter]['cpf'] = $cpf;
     }
 
-    $option = readline("Choose an option (0 to skip): ");
-
-    if ($option == '0') {
-        return false;
-    } else {
-        return $options[$option];
+    $confirmationNeeded = true;
+    while ($confirmationNeeded) {
+        $option = readline("Choose an option (0 to skip): ");
+        $preview = null;
+        if ($option == '0') {
+            $return = false;
+            $preview = 'skip';
+        } elseif (!empty($options[$option]['nome'])) {
+            $return = $options[$option];
+            $preview = "{$options[$option]['nome']} - CPF {$options[$option]['cpf']} - UC {$options[$option]['uc']}";
+        }
+        if ($preview) {
+            $confirmationOption = readline("Confirm option {$preview} (yes/no): [yes] ");
+            if ($confirmationOption == "" or $confirmationOption == "yes") {
+                $confirmationNeeded = false;
+            }
+        }
     }
+    return $return;
 }
