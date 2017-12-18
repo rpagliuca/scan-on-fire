@@ -2,3 +2,4 @@ in/*
 !in/.gitempty
 out/*
 !out/.gitempty
+config.json

@@ -6,6 +6,9 @@ if (file_exists($config)) {
     $metaobject = json_decode(file_get_contents($config));
     if (json_last_error() == JSON_ERROR_NONE) {
         $CFG = $metaobject;
+    } else {
+        echo "Error loading config.json\n";
+        exit(1);
     }
 }
 
