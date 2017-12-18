@@ -111,16 +111,18 @@ function findSimilarUCS($uc)
     $similares = [];
     for ($i = 0; $i <= strlen($uc); $i++) {
         $ucCopy = $uc;
-        $ucCopy[$i] = '.';
+        $ucCopy[$i] = '@';
         for ($j = 0; $j <= strlen($uc); $j++) {
             $ucCopy2 = $ucCopy;
-            $ucCopy2[$j] = '.';
+            $ucCopy2[$j] = '@';
             $similares[] = "$ucCopy2";
         }
     }
 
     $similaresInClause = implode($similares, "|");
-    
+
+    $similaresInClause = str_replace('@', '.+', $similaresInClause);
+
     $sql = "
         SELECT 
             UC.valor_identificador_uc, PF.nome, PF.cpf
@@ -131,6 +133,7 @@ function findSimilarUCS($uc)
         WHERE
             UC.valor_identificador_uc REGEXP '$similaresInClause'
                 AND UC.id_concessionaria = 12
+        ORDER BY PF.nome
     ";
 
     $results = $db->query($sql);
@@ -145,6 +148,7 @@ function findSimilarUCS($uc)
             'nome' => $row['nome']
         ];
     }
+
     $option = readline("Choose an option (0 to skip): ");
 
     if ($option == '0') {
