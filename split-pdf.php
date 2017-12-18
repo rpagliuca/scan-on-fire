@@ -86,8 +86,13 @@ foreach (file("in/$date.csv") as $line) {
             echo "Opening PDF on page $firstPage...\n";
             exec("evince --page-label=$firstPage in/$date.pdf >/dev/null 2>&1 &");
             $foundUc = findSimilarUCS($lastUc);
-            $lastUc = $foundUc['uc'];
-            $nome = $foundUc['nome'];
+            if ($foundUc) {
+                $lastUc = $foundUc['uc'];
+                $nome = $foundUc['nome'];
+            } else {
+                $lastUc = '___ ' . $lastUc;
+                $nome = "NÃO ENCONTRADO - REVISAR";
+            }
         }
 
         exec("pdftk in/$date.pdf cat $range output \"out/$date/$lastUc - $nome.pdf\"");
@@ -140,6 +145,11 @@ function findSimilarUCS($uc)
             'nome' => $row['nome']
         ];
     }
-    $option = readline("Choose an option: ");
-    return $options[$option];
+    $option = readline("Choose an option (0 to skip): ");
+
+    if ($option == '0') {
+        return false;
+    } else {
+        return $options[$option];
+    }
 }
